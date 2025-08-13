@@ -1,4 +1,4 @@
-# 🖊️ Scribble Pad 2.0
+# 🖊️ Scribble Pad 2.1
 
 A distraction-free writing pad built for quick notes, ideas, and thoughts. All data is stored locally by default — privacy-first by design.
 
@@ -30,6 +30,23 @@ Preview Screenshot
 - Tailwind CSS
 - LocalStorage for data persistence
 - LZ-String for URL-based sharing
+
+## 🆕 What’s new in 2.1
+
+- Dependency stability: pinned Radix UI and Floating UI to avoid production drift
+- Fixed Floating UI ENOENT issue with overrides
+- Build now passes with React 19/Next 15
+- Minor UI copy updates to reflect version
+
+## 🛠️ Setup
+
+1. Node.js 18.18+ recommended
+2. Install deps:
+   - pnpm install
+3. Dev:
+   - pnpm dev
+4. Build:
+   - pnpm build
 
 ## 🤝 Contributing
 

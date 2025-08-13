@@ -627,7 +627,7 @@ export default function ScribblePad() {
           {/* Bottom Bar */}
           <div className="flex justify-between items-center px-8 py-6">
             <div className={`text-sm font-medium ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
-              Scribble Pad v2.0
+              Scribble Pad v2.1
             </div>
 
             <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>

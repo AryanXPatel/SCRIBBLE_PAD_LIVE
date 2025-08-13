@@ -20,7 +20,7 @@ export function WelcomeDialog({ isOpen, onClose, isDarkMode }: WelcomeDialogProp
       >
         <DialogHeader>
           <DialogTitle className={`text-xl ${isDarkMode ? "text-white" : "text-gray-900"}`}>
-            Welcome to Scribble Pad v2.0
+            Welcome to Scribble Pad v2.1
           </DialogTitle>
           <DialogDescription className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
             A distraction-free writing experience designed for your thoughts and ideas.

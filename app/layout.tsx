@@ -4,7 +4,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Scribble Pad',
   description: 'Scribble Pad - A distraction-free writing experience',
-  generator: 'Scribble Pad 2.0',
+  generator: 'Scribble Pad 2.1',
 }
 
 export default function RootLayout({
