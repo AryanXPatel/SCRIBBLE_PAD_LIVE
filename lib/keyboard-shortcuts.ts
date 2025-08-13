@@ -47,6 +47,22 @@ export class KeyboardShortcutManager {
         currentKeys: ["Alt+N"],
         action: "newDocument",
       },
+      allDocuments: {
+        id: "allDocuments",
+        name: "All Documents",
+        description: "Toggle the documents sidebar",
+        defaultKeys: ["Ctrl+,"],
+        currentKeys: ["Ctrl+,"],
+        action: "allDocuments",
+      },
+      settings: {
+        id: "settings",
+        name: "Settings",
+        description: "Open the settings menu",
+        defaultKeys: ["Ctrl+."],
+        currentKeys: ["Ctrl+."],
+        action: "settings",
+      },
     }
   }
 
@@ -159,10 +175,19 @@ export class KeyboardShortcutManager {
   static isEditableElement(element: Element | null): boolean {
     if (!element) return false
     
-    const tagName = element.tagName.toLowerCase()
-    if (tagName === "input" || tagName === "textarea") return true
-    if ((element as HTMLElement).contentEditable === "true") return true
-    
-    return false
+    try {
+      // Check if element has tagName property and it's a string
+      if (!element.tagName || typeof element.tagName !== 'string') return false
+      
+      const tagName = element.tagName.toLowerCase()
+      if (tagName === "input" || tagName === "textarea") return true
+      if ((element as HTMLElement).contentEditable === "true") return true
+      
+      return false
+    } catch (error) {
+      // If any error occurs, assume it's not editable
+      console.warn('Error checking if element is editable:', error)
+      return false
+    }
   }
 }

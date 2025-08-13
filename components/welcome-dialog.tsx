@@ -71,9 +71,15 @@ export function WelcomeDialog({ isOpen, onClose, isDarkMode }: WelcomeDialogProp
               <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+D</kbd> or <kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+D</kbd> Toggle theme</li>
               <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+F</kbd> Search documents</li>
               <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Alt+N</kbd> New document</li>
+              <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+,</kbd> All documents</li>
+              <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+.</kbd> Settings</li>
+              <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Esc</kbd> Close dialogs</li>
             </ul>
             <p className={`text-xs mt-2 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
               ⚙️ You can customize these shortcuts in Settings → Keyboard Shortcuts
+            </p>
+            <p className={`text-xs mt-1 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+              💡 Theme, Search, Documents, Settings, and Export work even while typing!
             </p>
           </div>
 

@@ -49,6 +49,7 @@ export default function ScribblePad() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const headingRef = useRef<HTMLInputElement>(null)
   const contentRef = useRef<HTMLTextAreaElement>(null)
+  const settingsDropdownRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
@@ -152,27 +153,81 @@ export default function ScribblePad() {
     setContent(newDoc.content)
   }, [currentFolder])
 
+  const toggleDarkMode = useCallback(() => {
+    const newMode = !isDarkMode
+    setIsDarkMode(newMode)
+
+    if (newMode) {
+      document.documentElement.classList.add("dark")
+      localStorage.setItem("scribble-pad-theme", "dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+      localStorage.setItem("scribble-pad-theme", "light")
+    }
+  }, [isDarkMode])
+
+  const toggleSidebar = useCallback(() => {
+    setShowSidebar(prev => !prev)
+  }, [])
+
+  const triggerSettings = useCallback(() => {
+    // Trigger settings dropdown using multiple methods for reliability
+    if (settingsDropdownRef.current) {
+      settingsDropdownRef.current.click()
+    }
+  }, [])
+
+  const closeAllDialogs = useCallback(() => {
+    setShowSearch(false)
+    setShowSidebar(false)
+    setShowKeyboardShortcuts(false)
+    setShowShareDialog(false)
+    setShowWelcomeDialog(false)
+  }, [])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle shortcuts when typing in editable elements
+      // ESC key - close any open dialogs (works everywhere)
+      if (e.key === "Escape") {
+        e.preventDefault()
+        closeAllDialogs()
+        return
+      }
+
+      // GLOBAL shortcuts - work even while typing in editable elements
+      if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.toggleTheme.currentKeys)) {
+        e.preventDefault()
+        toggleDarkMode()
+        return
+      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.search.currentKeys)) {
+        e.preventDefault()
+        // Double-press behavior: toggle search even when search input is focused
+        setShowSearch(prev => !prev)
+        return
+      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.allDocuments.currentKeys)) {
+        e.preventDefault()
+        // Double-press behavior: toggle sidebar
+        toggleSidebar()
+        return
+      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.settings.currentKeys)) {
+        e.preventDefault()
+        triggerSettings()
+        return
+      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.export.currentKeys)) {
+        e.preventDefault()
+        exportText()
+        return
+      }
+
+      // CONTEXT-SENSITIVE shortcuts - only when NOT typing in editable elements
       if (KeyboardShortcutManager.isEditableElement(e.target as Element)) {
         return
       }
 
-      // Check each shortcut
-      if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.export.currentKeys)) {
-        e.preventDefault()
-        exportText()
-      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.import.currentKeys)) {
+      if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.import.currentKeys)) {
         e.preventDefault()
         fileInputRef.current?.click()
-      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.toggleTheme.currentKeys)) {
-        e.preventDefault()
-        toggleDarkMode()
-      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.search.currentKeys)) {
-        e.preventDefault()
-        setShowSearch(true)
       } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.newDocument.currentKeys)) {
         e.preventDefault()
         createNewDocument()
@@ -183,7 +238,7 @@ export default function ScribblePad() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [keyboardShortcuts])
+  }, [keyboardShortcuts, exportText, createNewDocument, toggleDarkMode, toggleSidebar, triggerSettings, closeAllDialogs])
 
   const loadDocuments = () => {
     try {
@@ -248,19 +303,6 @@ export default function ScribblePad() {
 
     return () => clearTimeout(timeoutId)
   }, [heading, content, currentDocument, isMounted])
-
-  const toggleDarkMode = () => {
-    const newMode = !isDarkMode
-    setIsDarkMode(newMode)
-
-    if (newMode) {
-      document.documentElement.classList.add("dark")
-      localStorage.setItem("scribble-pad-theme", "dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-      localStorage.setItem("scribble-pad-theme", "light")
-    }
-  }
 
   const importText = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -451,6 +493,7 @@ export default function ScribblePad() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
+                  ref={settingsDropdownRef}
                   variant="ghost"
                   size="sm"
                   className={`p-2 rounded-lg transition-colors ${

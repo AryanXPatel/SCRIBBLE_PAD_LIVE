@@ -30,4 +30,6 @@ export interface KeyboardShortcuts {
   toggleTheme: KeyboardShortcut
   search: KeyboardShortcut
   newDocument: KeyboardShortcut
+  allDocuments: KeyboardShortcut
+  settings: KeyboardShortcut
 }
