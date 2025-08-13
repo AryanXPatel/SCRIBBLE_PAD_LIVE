@@ -63,6 +63,22 @@ export function WelcomeDialog({ isOpen, onClose, isDarkMode }: WelcomeDialogProp
 
           <Separator className={isDarkMode ? "bg-gray-600" : "bg-gray-200"} />
 
+          <div>
+            <h3 className={`font-semibold mb-2 ${isDarkMode ? "text-white" : "text-gray-900"}`}>Keyboard Shortcuts</h3>
+            <ul className={`space-y-1 text-sm ${isDarkMode ? "text-gray-300" : "text-gray-600"}`}>
+              <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+S</kbd> or <kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+S</kbd> Export document</li>
+              <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+O</kbd> Import document</li>
+              <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+D</kbd> or <kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+D</kbd> Toggle theme</li>
+              <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Ctrl+Shift+F</kbd> Search documents</li>
+              <li><kbd className="px-1 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 rounded">Alt+N</kbd> New document</li>
+            </ul>
+            <p className={`text-xs mt-2 ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
+              ⚙️ You can customize these shortcuts in Settings → Keyboard Shortcuts
+            </p>
+          </div>
+
+          <Separator className={isDarkMode ? "bg-gray-600" : "bg-gray-200"} />
+
           <div className={`text-xs ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
             <p>
               <strong>Privacy Note:</strong> Scribble Pad operates entirely in your browser. No data is sent to external

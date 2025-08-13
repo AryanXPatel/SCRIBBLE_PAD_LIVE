@@ -14,3 +14,20 @@ export interface Folder {
   parentId: string | null
   createdAt: string
 }
+
+export interface KeyboardShortcut {
+  id: string
+  name: string
+  description: string
+  defaultKeys: string[]
+  currentKeys: string[]
+  action: string
+}
+
+export interface KeyboardShortcuts {
+  export: KeyboardShortcut
+  import: KeyboardShortcut
+  toggleTheme: KeyboardShortcut
+  search: KeyboardShortcut
+  newDocument: KeyboardShortcut
+}

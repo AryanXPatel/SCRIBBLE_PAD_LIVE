@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
@@ -196,6 +196,9 @@ export function SearchDialog({ isOpen, onClose, documents, folders, onSelectDocu
       >
         <DialogHeader>
           <DialogTitle className={isDarkMode ? "text-white" : "text-gray-900"}>Search Documents</DialogTitle>
+          <DialogDescription className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
+            Search through your documents by title, content, tags, folders, or date range.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

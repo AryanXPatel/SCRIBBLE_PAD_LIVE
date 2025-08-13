@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import * as LZString from "lz-string"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,13 +11,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Settings, Download, Upload, Share2, Sun, Moon, Trash2, HelpCircle, FolderOpen, Search } from "lucide-react"
+import { Settings, Download, Upload, Share2, Sun, Moon, Trash2, HelpCircle, FolderOpen, Search, Keyboard } from "lucide-react"
 import { ShareDialog } from "@/components/share-dialog"
 import { WelcomeDialog } from "@/components/welcome-dialog"
 import { DocumentSidebar } from "@/components/document-sidebar"
 import { SearchDialog } from "@/components/search-dialog"
+import { KeyboardShortcutsDialog } from "@/components/keyboard-shortcuts-dialog"
 import { DocumentManager } from "@/lib/document-manager"
-import type { Document, Folder } from "@/types"
+import { KeyboardShortcutManager } from "@/lib/keyboard-shortcuts"
+import type { Document, Folder, KeyboardShortcuts } from "@/types"
 
 export default function ScribblePad() {
   const [isMounted, setIsMounted] = useState(false)
@@ -31,6 +33,7 @@ export default function ScribblePad() {
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false)
   const [showSidebar, setShowSidebar] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
   const [isHeadingFocused, setIsHeadingFocused] = useState(false)
   const [isContentFocused, setIsContentFocused] = useState(false)
 
@@ -39,6 +42,9 @@ export default function ScribblePad() {
   const [folders, setFolders] = useState<Folder[]>([])
   const [currentDocument, setCurrentDocument] = useState<Document | null>(null)
   const [currentFolder, setCurrentFolder] = useState<string | null>(null)
+  const [keyboardShortcuts, setKeyboardShortcuts] = useState<KeyboardShortcuts>(
+    KeyboardShortcutManager.getDefaultShortcuts()
+  )
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const headingRef = useRef<HTMLInputElement>(null)
@@ -65,6 +71,10 @@ export default function ScribblePad() {
     // Load documents and folders
     loadDocuments()
     loadFolders()
+    
+    // Load keyboard shortcuts
+    const savedShortcuts = KeyboardShortcutManager.getShortcuts()
+    setKeyboardShortcuts(savedShortcuts)
 
     // Check for shared note in URL hash
     const handleHashChange = () => {
@@ -100,32 +110,72 @@ export default function ScribblePad() {
     }
   }, [isMounted])
 
+  // Define functions before useEffect that uses them
+  const exportText = useCallback(() => {
+    try {
+      const textContent = `#${heading}\n${content}`
+      const blob = new Blob([textContent], { type: "text/plain" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      
+      // Create a safe filename from the heading
+      const sanitizedHeading = heading?.trim() || "untitled"
+      const safeFilename = sanitizedHeading
+        .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename characters
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .substring(0, 100) // Limit length
+        
+      a.download = `${safeFilename}.txt`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      console.log(`Exported file: ${safeFilename}.txt`) // Debug log
+    } catch (error) {
+      console.error("Failed to export file:", error)
+      // Could add a toast notification here in the future
+    }
+  }, [heading, content])
+
+  const createNewDocument = useCallback(() => {
+    const newDoc = DocumentManager.createDocument({
+      title: "Untitled",
+      content: "",
+      folderId: currentFolder,
+      tags: [],
+    })
+    setDocuments((prev) => [newDoc, ...prev])
+    setCurrentDocument(newDoc)
+    setHeading(newDoc.title)
+    setContent(newDoc.content)
+  }, [currentFolder])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case "s":
-            e.preventDefault()
-            exportText()
-            break
-          case "o":
-            e.preventDefault()
-            fileInputRef.current?.click()
-            break
-          case "d":
-            e.preventDefault()
-            toggleDarkMode()
-            break
-          case "k":
-            e.preventDefault()
-            setShowSearch(true)
-            break
-          case "n":
-            e.preventDefault()
-            createNewDocument()
-            break
-        }
+      // Don't handle shortcuts when typing in editable elements
+      if (KeyboardShortcutManager.isEditableElement(e.target as Element)) {
+        return
+      }
+
+      // Check each shortcut
+      if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.export.currentKeys)) {
+        e.preventDefault()
+        exportText()
+      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.import.currentKeys)) {
+        e.preventDefault()
+        fileInputRef.current?.click()
+      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.toggleTheme.currentKeys)) {
+        e.preventDefault()
+        toggleDarkMode()
+      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.search.currentKeys)) {
+        e.preventDefault()
+        setShowSearch(true)
+      } else if (KeyboardShortcutManager.matchesShortcut(e, keyboardShortcuts.newDocument.currentKeys)) {
+        e.preventDefault()
+        createNewDocument()
       }
     }
 
@@ -133,7 +183,7 @@ export default function ScribblePad() {
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
-  }, [])
+  }, [keyboardShortcuts])
 
   const loadDocuments = () => {
     try {
@@ -175,17 +225,28 @@ export default function ScribblePad() {
     setCharCount(chars)
   }, [content, isMounted])
 
-  // Auto-save current document
+  // Auto-save current document with debouncing
   useEffect(() => {
     if (!isMounted) return
-    if (currentDocument && (heading !== currentDocument.title || content !== currentDocument.content)) {
-      const updatedDoc = DocumentManager.updateDocument(currentDocument.id, {
-        title: heading || "Untitled",
-        content: content,
-      })
-      setCurrentDocument(updatedDoc)
-      setDocuments((prev) => prev.map((doc) => (doc.id === updatedDoc.id ? updatedDoc : doc)))
-    }
+    if (!currentDocument) return
+    
+    const shouldSave = heading !== currentDocument.title || content !== currentDocument.content
+    if (!shouldSave) return
+
+    const timeoutId = setTimeout(() => {
+      try {
+        const updatedDoc = DocumentManager.updateDocument(currentDocument.id, {
+          title: heading || "Untitled",
+          content: content,
+        })
+        setCurrentDocument(updatedDoc)
+        setDocuments((prev) => prev.map((doc) => (doc.id === updatedDoc.id ? updatedDoc : doc)))
+      } catch (error) {
+        console.error("Failed to auto-save document:", error)
+      }
+    }, 1000) // 1 second debounce
+
+    return () => clearTimeout(timeoutId)
   }, [heading, content, currentDocument, isMounted])
 
   const toggleDarkMode = () => {
@@ -201,47 +262,49 @@ export default function ScribblePad() {
     }
   }
 
-  const exportText = () => {
-    const textContent = `#${heading}\n${content}`
-    const blob = new Blob([textContent], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${heading || "untitled"}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
   const importText = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.txt')) {
+      console.error("Only .txt files are supported")
+      return
+    }
+
     const reader = new FileReader()
     reader.onload = (e) => {
-      const text = e.target?.result as string
-      const lines = text.split("\n")
-      let newHeading = file.name.replace(".txt", "")
-      let newContent = text
+      try {
+        const text = e.target?.result as string
+        const lines = text.split("\n")
+        let newHeading = file.name.replace(".txt", "")
+        let newContent = text
 
-      if (lines[0].startsWith("#")) {
-        newHeading = lines[0].substring(1)
-        newContent = lines.slice(1).join("\n")
+        if (lines[0].startsWith("#")) {
+          newHeading = lines[0].substring(1).trim()
+          newContent = lines.slice(1).join("\n").trim()
+        }
+
+        const newDoc = DocumentManager.createDocument({
+          title: newHeading || "Imported Document",
+          content: newContent,
+          folderId: currentFolder,
+          tags: ["imported"],
+        })
+
+        setDocuments((prev) => [newDoc, ...prev])
+        setCurrentDocument(newDoc)
+        setHeading(newDoc.title)
+        setContent(newDoc.content)
+      } catch (error) {
+        console.error("Failed to import file:", error)
       }
-
-      const newDoc = DocumentManager.createDocument({
-        title: newHeading,
-        content: newContent,
-        folderId: currentFolder,
-        tags: ["imported"],
-      })
-
-      setDocuments((prev) => [newDoc, ...prev])
-      setCurrentDocument(newDoc)
-      setHeading(newDoc.title)
-      setContent(newDoc.content)
     }
+    
+    reader.onerror = () => {
+      console.error("Failed to read file")
+    }
+    
     reader.readAsText(file)
 
     if (fileInputRef.current) {
@@ -269,19 +332,6 @@ export default function ScribblePad() {
     } catch (error) {
       console.error("Failed to copy to clipboard:", error)
     }
-  }
-
-  const createNewDocument = () => {
-    const newDoc = DocumentManager.createDocument({
-      title: "Untitled",
-      content: "",
-      folderId: currentFolder,
-      tags: [],
-    })
-    setDocuments((prev) => [newDoc, ...prev])
-    setCurrentDocument(newDoc)
-    setHeading(newDoc.title)
-    setContent(newDoc.content)
   }
 
   const selectDocument = (doc: Document) => {
@@ -330,6 +380,10 @@ export default function ScribblePad() {
   const updateDocumentTags = (docId: string, tags: string[]) => {
     DocumentManager.updateDocument(docId, { tags })
     loadDocuments()
+  }
+
+  const handleShortcutsChange = (newShortcuts: KeyboardShortcuts) => {
+    setKeyboardShortcuts(newShortcuts)
   }
 
   if (!isMounted) {
@@ -468,6 +522,14 @@ export default function ScribblePad() {
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
+                  onClick={() => setShowKeyboardShortcuts(true)}
+                  className={`cursor-pointer ${isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-100"}`}
+                >
+                  <Keyboard className="w-4 h-4 mr-3" />
+                  Keyboard Shortcuts
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
                   onClick={() => setShowWelcomeDialog(true)}
                   className={`cursor-pointer ${isDarkMode ? "hover:bg-gray-700/50" : "hover:bg-gray-100"}`}
                 >
@@ -508,7 +570,7 @@ export default function ScribblePad() {
                 onFocus={() => setIsContentFocused(true)}
                 onBlur={() => setIsContentFocused(false)}
                 placeholder="Start writing..."
-                className={`w-full h-full min-h-[400px] bg-transparent border-none outline-none resize-none text-lg leading-relaxed transition-all duration-200 ${
+                className={`w-full h-full min-h-[400px] bg-transparent border-none outline-none resize-none text-lg leading-relaxed transition-all duration-200 custom-scrollbar ${
                   isDarkMode ? "text-gray-300 placeholder-gray-600" : "text-gray-700 placeholder-gray-500"
                 }`}
                 style={{
@@ -551,6 +613,13 @@ export default function ScribblePad() {
           documents={documents}
           folders={folders}
           onSelectDocument={selectDocument}
+          isDarkMode={isDarkMode}
+        />
+
+        <KeyboardShortcutsDialog
+          isOpen={showKeyboardShortcuts}
+          onClose={() => setShowKeyboardShortcuts(false)}
+          onShortcutsChange={handleShortcutsChange}
           isDarkMode={isDarkMode}
         />
       </div>
